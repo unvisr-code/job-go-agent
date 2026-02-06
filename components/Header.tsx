@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -19,15 +20,21 @@ export function Header() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/20 group-hover:shadow-primary/40 transition-shadow">
-            <span className="text-white font-bold text-lg">G</span>
+          <div className="w-9 h-9 rounded-xl overflow-hidden shadow-lg shadow-primary/20 group-hover:shadow-primary/40 transition-shadow">
+            <Image
+              src="/logo.png"
+              alt="공채GO 로고"
+              width={36}
+              height={36}
+              className="w-full h-full object-cover"
+            />
           </div>
           <div className="hidden sm:block">
             <h1 className="font-bold text-lg leading-tight tracking-tight">
               공채<span className="text-primary">GO</span>
             </h1>
             <p className="text-[10px] text-muted-foreground -mt-0.5">
-              공공기관 채용 에이전트
+              효주님 전용 채용 에이전트
             </p>
           </div>
         </Link>

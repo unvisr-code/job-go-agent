@@ -2,12 +2,41 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Providers } from '@/components/providers';
 import { Header } from '@/components/Header';
+import { PasswordGate } from '@/components/PasswordGate';
 
 export const metadata: Metadata = {
-  title: '공채GO - 공공기관 채용 에이전트',
-  description:
-    'AI 기반 공공기관 인턴/채용 공고 검색 및 대화형 탐색 서비스',
+  title: '공채GO - 효주님을 위한 공공기관 채용 에이전트',
+  description: '효주님, 공공기관 인턴/채용 공고를 AI가 함께 찾아드려요.',
   keywords: ['공공기관', '채용', '인턴', '취업', 'AI', '채용공고'],
+
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
+
+  openGraph: {
+    type: 'website',
+    locale: 'ko_KR',
+    url: 'https://job-go-agent.vercel.app',
+    siteName: '공채GO',
+    title: '공채GO - 효주님을 위한 공공기관 채용 에이전트',
+    description: '효주님, 공공기관 인턴/채용 공고를 AI가 함께 찾아드려요.',
+    images: [
+      {
+        url: 'https://job-go-agent.vercel.app/og-image.png',
+        width: 1200,
+        height: 630,
+      },
+    ],
+  },
+
+  twitter: {
+    card: 'summary_large_image',
+    title: '공채GO - 효주님을 위한 공공기관 채용 에이전트',
+    images: ['https://job-go-agent.vercel.app/og-image.png'],
+  },
+
+  metadataBase: new URL('https://job-go-agent.vercel.app'),
 };
 
 export default function RootLayout({
@@ -19,16 +48,18 @@ export default function RootLayout({
     <html lang="ko" suppressHydrationWarning>
       <body className="min-h-screen">
         <Providers>
-          <div className="relative min-h-screen">
-            {/* Background mesh gradient */}
-            <div className="fixed inset-0 mesh-gradient pointer-events-none" />
+          <PasswordGate>
+            <div className="relative min-h-screen">
+              {/* Background mesh gradient */}
+              <div className="fixed inset-0 mesh-gradient pointer-events-none" />
 
-            {/* Content */}
-            <div className="relative z-10">
-              <Header />
-              <main>{children}</main>
+              {/* Content */}
+              <div className="relative z-10">
+                <Header />
+                <main>{children}</main>
+              </div>
             </div>
-          </div>
+          </PasswordGate>
         </Providers>
       </body>
     </html>
