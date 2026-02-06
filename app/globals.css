@@ -170,6 +170,15 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "ss01", "ss02", "cv01";
   }
+  /* 모바일 확대 방지: iOS Safari에서 16px 미만 font-size는 자동 확대됨 */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+  @media (min-width: 640px) {
+    input, textarea, select {
+      font-size: 14px !important;
+    }
+  }
 }
 
 /* Custom animations */

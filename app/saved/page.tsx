@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { JobCard, JobCardSkeleton } from '@/components/JobCard';
 import { Button } from '@/components/ui/button';
+import { BackButton } from '@/components/BackButton';
 import { useBookmarks } from '@/lib/hooks/useBookmarks';
 import type { JobPosting } from '@/types';
-import { Bookmark, ArrowLeft, Sparkles } from 'lucide-react';
+import { Bookmark, Sparkles } from 'lucide-react';
 
 export default function SavedJobsPage() {
   const router = useRouter();
@@ -66,14 +67,7 @@ export default function SavedJobsPage() {
     <div className="container mx-auto px-4 py-6 max-w-6xl">
       {/* Header */}
       <div className="mb-8">
-        <Button
-          variant="ghost"
-          onClick={() => router.push('/')}
-          className="mb-4 gap-2 min-h-[44px]"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          목록으로
-        </Button>
+        <BackButton fallbackUrl="/" className="mb-4" />
 
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">

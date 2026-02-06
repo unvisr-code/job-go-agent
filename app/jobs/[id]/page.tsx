@@ -1,18 +1,16 @@
 import { notFound } from 'next/navigation';
 import { getJobById } from '@/lib/supabase/queries';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { BackButton } from '@/components/BackButton';
 import {
   Building2,
   MapPin,
   Calendar,
   Users,
-  ArrowLeft,
   Clock,
   AlertCircle,
 } from 'lucide-react';
-import Link from 'next/link';
 import { format, differenceInDays, isPast } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { JobDetailActions } from './JobDetailActions';
@@ -73,13 +71,8 @@ export default async function JobDetailPage({
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-4xl">
-      {/* Back button */}
-      <Link href="/">
-        <Button variant="ghost" className="mb-4 gap-2 min-h-[44px]">
-          <ArrowLeft className="w-4 h-4" />
-          목록으로
-        </Button>
-      </Link>
+      {/* Back button - 이전 페이지로 돌아가기 (AI 채팅에서 왔으면 채팅으로) */}
+      <BackButton fallbackUrl="/" className="mb-4" />
 
       <div className="space-y-6">
         {/* Header Card - 공고 기본 정보 */}
