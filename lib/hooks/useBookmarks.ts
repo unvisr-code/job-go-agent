@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useSyncExternalStore } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 const STORAGE_KEY = 'job-go-bookmarks';
 
@@ -9,13 +9,7 @@ export interface BookmarkedJob {
   savedAt: string;
 }
 
-// localStorage를 external store로 사용
-function subscribe(callback: () => void) {
-  window.addEventListener('storage', callback);
-  return () => window.removeEventListener('storage', callback);
-}
-
-function getSnapshot(): BookmarkedJob[] {
+function loadBookmarks(): BookmarkedJob[] {
   if (typeof window === 'undefined') return [];
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -25,21 +19,23 @@ function getSnapshot(): BookmarkedJob[] {
   }
 }
 
-function getServerSnapshot(): BookmarkedJob[] {
-  return [];
+function saveToStorage(bookmarks: BookmarkedJob[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(bookmarks));
+  } catch (error) {
+    console.error('Failed to save bookmarks:', error);
+  }
 }
 
 export function useBookmarks() {
-  const bookmarks = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const [bookmarks, setBookmarks] = useState<BookmarkedJob[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  const saveBookmarks = useCallback((newBookmarks: BookmarkedJob[]) => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newBookmarks));
-      // Trigger re-render by dispatching storage event
-      window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY }));
-    } catch (error) {
-      console.error('Failed to save bookmarks:', error);
-    }
+  // 클라이언트에서만 localStorage 로드 (마운트 시 1회)
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage 초기 로드는 유효한 패턴
+    setBookmarks(loadBookmarks());
+    setIsLoaded(true);
   }, []);
 
   const isBookmarked = useCallback(
@@ -48,29 +44,32 @@ export function useBookmarks() {
   );
 
   const addBookmark = useCallback((jobId: string) => {
-    const current = getSnapshot();
-    if (current.some((b) => b.id === jobId)) return;
-    saveBookmarks([...current, { id: jobId, savedAt: new Date().toISOString() }]);
-  }, [saveBookmarks]);
+    setBookmarks((prev) => {
+      if (prev.some((b) => b.id === jobId)) return prev;
+      const updated = [...prev, { id: jobId, savedAt: new Date().toISOString() }];
+      saveToStorage(updated);
+      return updated;
+    });
+  }, []);
 
   const removeBookmark = useCallback((jobId: string) => {
-    const current = getSnapshot();
-    saveBookmarks(current.filter((b) => b.id !== jobId));
-  }, [saveBookmarks]);
+    setBookmarks((prev) => {
+      const updated = prev.filter((b) => b.id !== jobId);
+      saveToStorage(updated);
+      return updated;
+    });
+  }, []);
 
-  const toggleBookmark = useCallback(
-    (jobId: string) => {
-      if (isBookmarked(jobId)) {
-        removeBookmark(jobId);
-      } else {
-        addBookmark(jobId);
-      }
-    },
-    [isBookmarked, addBookmark, removeBookmark]
-  );
-
-  // useSyncExternalStore는 hydration 후 자동으로 로드됨
-  const isLoaded = typeof window !== 'undefined';
+  const toggleBookmark = useCallback((jobId: string) => {
+    setBookmarks((prev) => {
+      const exists = prev.some((b) => b.id === jobId);
+      const updated = exists
+        ? prev.filter((b) => b.id !== jobId)
+        : [...prev, { id: jobId, savedAt: new Date().toISOString() }];
+      saveToStorage(updated);
+      return updated;
+    });
+  }, []);
 
   return {
     bookmarks,
