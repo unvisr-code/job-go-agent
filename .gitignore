@@ -33,6 +33,13 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# local config
+.mcp.json
+
+# planning docs
+TODO.md
+prd.md
+
 # vercel
 .vercel
 
