@@ -68,9 +68,8 @@ export default function SavedJobsPage() {
       <div className="mb-8">
         <Button
           variant="ghost"
-          size="sm"
           onClick={() => router.push('/')}
-          className="mb-4 gap-2"
+          className="mb-4 gap-2 min-h-[44px]"
         >
           <ArrowLeft className="w-4 h-4" />
           목록으로

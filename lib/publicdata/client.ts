@@ -91,3 +91,44 @@ export async function fetchAllPublicJobs(
   console.log(`[PublicData] Total fetched: ${allItems.length} jobs`);
   return allItems;
 }
+
+/**
+ * 종료된 과거 공고 대량 수집 (ongoingYn='N')
+ * 통계 및 예측을 위한 히스토리 데이터
+ */
+export async function fetchAllHistoricalJobs(
+  maxPages: number = 100
+): Promise<PublicDataJobItem[]> {
+  const allItems: PublicDataJobItem[] = [];
+  let pageNo = 1;
+  let hasMore = true;
+
+  console.log('[PublicData] Starting historical jobs fetch (ongoingYn=N)...');
+
+  while (hasMore && pageNo <= maxPages) {
+    const { items, totalCount } = await fetchPublicJobs({
+      pageNo,
+      numOfRows: 100,
+      ongoingYn: 'N', // 종료된 공고만
+    });
+
+    allItems.push(...items);
+
+    const fetchedCount = pageNo * 100;
+    hasMore = fetchedCount < totalCount;
+    pageNo++;
+
+    // 진행 상황 로깅
+    if (pageNo % 10 === 0) {
+      console.log(`[PublicData] Historical progress: ${allItems.length}/${totalCount} jobs`);
+    }
+
+    // Rate limiting (조금 더 여유있게)
+    if (hasMore) {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+  }
+
+  console.log(`[PublicData] Historical fetch complete: ${allItems.length} jobs`);
+  return allItems;
+}

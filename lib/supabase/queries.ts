@@ -213,9 +213,10 @@ export async function getRecommendedJobs(params: {
   regions?: string[];
   dutyCategories?: string[];
   employmentTypes?: string[];
+  isInternship?: boolean;
   limit?: number;
 }): Promise<JobPosting[]> {
-  const { regions, dutyCategories, employmentTypes, limit = 10 } = params;
+  const { regions, dutyCategories, employmentTypes, isInternship, limit = 10 } = params;
   const safeLimit = Math.max(1, Math.min(limit, 50));
 
   let queryBuilder = supabase
@@ -233,8 +234,11 @@ export async function getRecommendedJobs(params: {
     queryBuilder = queryBuilder.overlaps('duty_categories', dutyCategories);
   }
 
-  // Filter by employment types
-  if (employmentTypes && employmentTypes.length > 0) {
+  // Filter by internship (includes 정규직 전환 공고)
+  if (isInternship !== undefined) {
+    queryBuilder = queryBuilder.eq('is_internship', isInternship);
+  } else if (employmentTypes && employmentTypes.length > 0) {
+    // Fallback to employment types if isInternship not specified
     queryBuilder = queryBuilder.in('employment_type', employmentTypes);
   }
 

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import {
   Send,
@@ -16,9 +16,9 @@ import {
   Trash2,
   Menu,
   X,
+  StopCircle,
 } from 'lucide-react';
 import type { ChatSession } from '@/types';
-import { JobDetailModal } from './JobDetailModal';
 
 interface Message {
   id: string;
@@ -29,7 +29,6 @@ interface Message {
 
 /**
  * 간단한 마크다운 렌더링
- * onJobClick: /jobs/{id} 링크 클릭 시 호출되는 콜백
  */
 function renderMarkdown(text: string, onJobClick?: (jobId: string) => void) {
   const parts: React.ReactNode[] = [];
@@ -68,7 +67,6 @@ function renderMarkdown(text: string, onJobClick?: (jobId: string) => void) {
         const linkMatch = matched.match(/\[([^\]]+)\]\(([^)]+)\)/);
         if (linkMatch) {
           const [, linkText, url] = linkMatch;
-          // /jobs/{id} 링크는 모달로 열기
           const jobMatch = url.match(/^\/jobs\/([a-f0-9-]+)$/i);
           if (jobMatch && onJobClick) {
             const jobId = jobMatch[1];
@@ -76,7 +74,7 @@ function renderMarkdown(text: string, onJobClick?: (jobId: string) => void) {
               <button
                 key={`link-${key++}`}
                 onClick={() => onJobClick(jobId)}
-                className="text-primary hover:underline font-medium"
+                className="text-primary hover:underline font-medium cursor-pointer"
               >
                 {linkText}
               </button>
@@ -116,7 +114,21 @@ function renderMarkdown(text: string, onJobClick?: (jobId: string) => void) {
   return parts;
 }
 
+/**
+ * 타이핑 인디케이터 컴포넌트
+ */
+function TypingIndicator() {
+  return (
+    <div className="flex gap-1 items-center px-1">
+      <span className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce [animation-delay:-0.3s]" />
+      <span className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce [animation-delay:-0.15s]" />
+      <span className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce" />
+    </div>
+  );
+}
+
 export function ChatInterface() {
+  const router = useRouter();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -124,15 +136,29 @@ export function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [showSidebar, setShowSidebar] = useState(false);
-  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-  const [isJobModalOpen, setIsJobModalOpen] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // 공고 상세 모달 열기
+  // 공고 상세 페이지로 이동
   const handleJobClick = useCallback((jobId: string) => {
-    setSelectedJobId(jobId);
-    setIsJobModalOpen(true);
+    router.push(`/jobs/${jobId}`);
+  }, [router]);
+
+  // 스크롤을 맨 아래로 이동 (smooth)
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    // requestAnimationFrame으로 DOM 업데이트 후 실행 보장
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior, block: 'end' });
+    });
+  }, []);
+
+  // 즉시 스크롤 (애니메이션 없이)
+  const scrollToBottomInstant = useCallback(() => {
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'instant', block: 'end' });
+    });
   }, []);
 
   // 세션 목록 로드
@@ -166,11 +192,13 @@ export function ChatInterface() {
         );
         setCurrentSessionId(sessionId);
         setShowSidebar(false);
+        // 세션 로드 후 즉시 스크롤
+        setTimeout(() => scrollToBottomInstant(), 100);
       }
     } catch (error) {
       console.error('Failed to load session:', error);
     }
-  }, []);
+  }, [scrollToBottomInstant]);
 
   // 새 세션 생성
   const createNewSession = useCallback(async () => {
@@ -182,6 +210,8 @@ export function ChatInterface() {
         setCurrentSessionId(data.session.id);
         setMessages([]);
         setShowSidebar(false);
+        // 새 세션 후 입력창 포커스
+        setTimeout(() => textareaRef.current?.focus(), 100);
       }
     } catch (error) {
       console.error('Failed to create session:', error);
@@ -212,23 +242,38 @@ export function ChatInterface() {
     loadSessions();
   }, [loadSessions]);
 
-  // Auto scroll to bottom
+  // 메시지 변경 시 스크롤 (로딩 중에도)
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [messages]);
+    scrollToBottom();
+  }, [messages, isLoading, scrollToBottom]);
 
   // Auto resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 150)}px`;
     }
   }, [input]);
 
+  // 초기 포커스
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, []);
+
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
+
+    const messageContent = input.trim();
+
+    // 입력창 즉시 초기화 및 포커스 유지
+    setInput('');
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.focus();
+    }
 
     // 세션이 없으면 자동 생성
     let sessionId = currentSessionId;
@@ -249,24 +294,20 @@ export function ChatInterface() {
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input.trim(),
+      content: messageContent,
       createdAt: new Date(),
     };
 
+    // 메시지 추가 후 즉시 스크롤
     setMessages((prev) => [...prev, userMessage]);
-    setInput('');
     setIsLoading(true);
-
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-    }
 
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: userMessage.content,
+          message: messageContent,
           sessionId,
         }),
       });
@@ -285,8 +326,6 @@ export function ChatInterface() {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
-
-      // 세션 목록 새로고침 (제목 업데이트 반영)
       loadSessions();
     } catch (error) {
       console.error('Chat error:', error);
@@ -301,6 +340,8 @@ export function ChatInterface() {
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+      // 응답 후 입력창 포커스
+      textareaRef.current?.focus();
     }
   };
 
@@ -311,15 +352,25 @@ export function ChatInterface() {
     }
   };
 
+  // 제안 클릭 시 바로 전송
+  const handleSuggestionClick = (suggestion: string) => {
+    setInput(suggestion);
+    // 다음 렌더 사이클에서 전송
+    setTimeout(() => {
+      const event = { key: 'Enter', shiftKey: false, preventDefault: () => {} } as React.KeyboardEvent;
+      handleKeyDown(event);
+    }, 0);
+  };
+
   const suggestions = [
-    '서울 지역 데이터 분석 인턴 찾아줘',
-    '마감 임박한 공고 추천해줘',
-    '경기도 행정 인턴 공고 검색해줘',
-    '오늘 마감인 공고 있어?',
+    { text: '서울 데이터 분석 인턴 찾아줘', icon: '🔍' },
+    { text: '마감 임박한 공고 추천해줘', icon: '⏰' },
+    { text: '한국전력공사 언제 채용해?', icon: '🔮' },
+    { text: '경기도 행정 인턴 검색해줘', icon: '📋' },
   ];
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] max-h-[800px]">
+    <div className="flex h-full bg-background">
       {/* Sidebar - 세션 목록 */}
       <div
         className={cn(
@@ -327,9 +378,9 @@ export function ChatInterface() {
           showSidebar ? 'w-64 translate-x-0' : 'w-0 -translate-x-full md:w-64 md:translate-x-0'
         )}
       >
-        <div className="flex flex-col h-full w-64">
+        <div className="flex flex-col h-full w-64 overflow-hidden">
           {/* 새 채팅 버튼 */}
-          <div className="p-3 border-b border-border/50">
+          <div className="p-3 border-b border-border/50 shrink-0">
             <Button
               onClick={createNewSession}
               className="w-full justify-start gap-2"
@@ -341,7 +392,7 @@ export function ChatInterface() {
           </div>
 
           {/* 세션 목록 */}
-          <ScrollArea className="flex-1">
+          <div className="flex-1 overflow-y-auto">
             <div className="p-2 space-y-1">
               {isLoadingSessions ? (
                 <div className="flex items-center justify-center py-8">
@@ -360,7 +411,7 @@ export function ChatInterface() {
                     onClick={() => loadSession(session.id)}
                     onKeyDown={(e) => e.key === 'Enter' && loadSession(session.id)}
                     className={cn(
-                      'w-full text-left px-3 py-2 rounded-lg text-sm transition-colors group flex items-center gap-2 cursor-pointer',
+                      'w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors group flex items-center gap-2 cursor-pointer',
                       currentSessionId === session.id
                         ? 'bg-primary/10 text-primary'
                         : 'hover:bg-muted text-foreground'
@@ -372,15 +423,15 @@ export function ChatInterface() {
                     </span>
                     <button
                       onClick={(e) => deleteSession(session.id, e)}
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/10 rounded transition-opacity"
+                      className="md:opacity-0 md:group-hover:opacity-100 p-2 hover:bg-destructive/10 rounded-lg transition-opacity min-w-[36px] min-h-[36px] flex items-center justify-center"
                     >
-                      <Trash2 className="w-3 h-3 text-destructive" />
+                      <Trash2 className="w-4 h-4 text-destructive" />
                     </button>
                   </div>
                 ))
               )}
             </div>
-          </ScrollArea>
+          </div>
         </div>
       </div>
 
@@ -393,13 +444,14 @@ export function ChatInterface() {
       )}
 
       {/* Main chat area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         {/* Mobile header */}
-        <div className="md:hidden flex items-center gap-2 p-2 border-b border-border/50">
+        <div className="md:hidden flex items-center gap-2 p-2 border-b border-border/50 shrink-0 bg-background">
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setShowSidebar(!showSidebar)}
+            className="shrink-0"
           >
             {showSidebar ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </Button>
@@ -409,122 +461,130 @@ export function ChatInterface() {
         </div>
 
         {/* Messages area */}
-        <ScrollArea ref={scrollRef} className="flex-1 px-4 py-6">
+        <div
+          ref={messagesContainerRef}
+          className="flex-1 overflow-y-auto overscroll-contain"
+        >
           {messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center px-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center mb-6 shadow-lg shadow-primary/20">
-                <Sparkles className="w-8 h-8 text-white" />
+            <div className="flex flex-col items-center justify-center min-h-full text-center px-4 py-8">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center mb-5 shadow-lg shadow-primary/20">
+                <Sparkles className="w-7 h-7 text-white" />
               </div>
-              <h2 className="text-2xl font-bold mb-2">무엇을 도와드릴까요?</h2>
-              <p className="text-muted-foreground mb-8 max-w-md">
-                원하는 채용공고를 자연어로 검색하고, 비교하고, 추천받을 수 있어요
+              <h2 className="text-xl sm:text-2xl font-bold mb-2">무엇을 도와드릴까요?</h2>
+              <p className="text-muted-foreground mb-6 max-w-sm text-sm">
+                채용공고 검색, 추천, 그리고 예정 공고 예측까지 도와드려요
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-md">
                 {suggestions.map((suggestion, i) => (
                   <button
                     key={i}
-                    onClick={() => setInput(suggestion)}
-                    className="text-left px-4 py-3 rounded-xl border border-border/50 text-sm text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-primary/5 transition-all"
+                    onClick={() => handleSuggestionClick(suggestion.text)}
+                    className="flex items-center gap-2.5 text-left px-3.5 py-2.5 rounded-xl border border-border/50 text-sm text-muted-foreground hover:text-foreground hover:border-primary/50 hover:bg-primary/5 transition-all active:scale-[0.98]"
                   >
-                    {suggestion}
+                    <span className="text-base">{suggestion.icon}</span>
+                    <span className="flex-1">{suggestion.text}</span>
                   </button>
                 ))}
               </div>
             </div>
           ) : (
-            <div className="space-y-6 max-w-3xl mx-auto pb-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={cn(
-                    'flex gap-3',
-                    message.role === 'user' ? 'justify-end' : 'justify-start'
-                  )}
-                >
-                  {message.role === 'assistant' && (
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <Bot className="w-4 h-4 text-primary" />
-                    </div>
-                  )}
-
+            <div className="px-4 py-6">
+              <div className="space-y-6 max-w-3xl mx-auto">
+                {messages.map((message) => (
                   <div
+                    key={message.id}
                     className={cn(
-                      'max-w-[85%] rounded-2xl px-4 py-3',
-                      message.role === 'user'
-                        ? 'bg-primary text-primary-foreground rounded-br-md'
-                        : 'bg-muted rounded-bl-md'
+                      'flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300',
+                      message.role === 'user' ? 'justify-end' : 'justify-start'
                     )}
                   >
-                    <div className="text-sm leading-relaxed">
-                      {message.role === 'assistant'
-                        ? renderMarkdown(message.content, handleJobClick)
-                        : message.content}
-                    </div>
-                  </div>
+                    {message.role === 'assistant' && (
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
+                        <Bot className="w-4 h-4 text-primary" />
+                      </div>
+                    )}
 
-                  {message.role === 'user' && (
-                    <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                      <User className="w-4 h-4 text-secondary-foreground" />
+                    <div
+                      className={cn(
+                        'max-w-[85%] rounded-2xl px-4 py-3',
+                        message.role === 'user'
+                          ? 'bg-primary text-primary-foreground rounded-br-sm'
+                          : 'bg-muted rounded-bl-sm'
+                      )}
+                    >
+                      <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                        {message.role === 'assistant'
+                          ? renderMarkdown(message.content, handleJobClick)
+                          : message.content}
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))}
 
-              {isLoading && (
-                <div className="flex gap-3 justify-start">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <Bot className="w-4 h-4 text-primary" />
+                    {message.role === 'user' && (
+                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0 mt-1">
+                        <User className="w-4 h-4 text-secondary-foreground" />
+                      </div>
+                    )}
                   </div>
-                  <div className="bg-muted rounded-2xl rounded-bl-md px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
-                        검색 중...
-                      </span>
+                ))}
+
+                {/* 로딩 인디케이터 */}
+                {isLoading && (
+                  <div className="flex gap-3 justify-start animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-1">
+                      <Bot className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="bg-muted rounded-2xl rounded-bl-sm px-4 py-3">
+                      <TypingIndicator />
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+
+                {/* 스크롤 앵커 */}
+                <div ref={messagesEndRef} className="h-1" />
+              </div>
             </div>
           )}
-        </ScrollArea>
+        </div>
 
-        {/* Input area */}
-        <div className="border-t border-border/50 p-4 bg-background/80 backdrop-blur-sm">
+        {/* Input area - Safe Area 대응 */}
+        <div className="shrink-0 border-t border-border/50 p-3 sm:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-background/95 backdrop-blur-sm">
           <div className="max-w-3xl mx-auto">
-            <div className="relative flex items-end gap-2 bg-muted/50 rounded-2xl p-2 border border-border/50 focus-within:border-primary/50 transition-colors">
+            <div className="relative bg-muted/40 rounded-2xl border border-border/50 focus-within:border-primary/50 focus-within:bg-muted/60 transition-all">
               <Textarea
                 ref={textareaRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="메시지를 입력하세요..."
-                className="flex-1 min-h-[44px] max-h-[120px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 px-2 py-2 text-sm"
+                className="w-full min-h-[52px] max-h-[150px] resize-none border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 pl-4 pr-14 py-3.5 text-sm placeholder:text-muted-foreground/50"
                 rows={1}
+                disabled={isLoading}
               />
               <Button
                 size="icon"
                 onClick={sendMessage}
                 disabled={!input.trim() || isLoading}
-                className="w-10 h-10 rounded-xl shrink-0"
+                className={cn(
+                  'absolute right-2 bottom-2 w-11 h-11 rounded-xl transition-all',
+                  input.trim() && !isLoading
+                    ? 'bg-primary hover:bg-primary/90 text-primary-foreground shadow-sm'
+                    : 'bg-transparent text-muted-foreground/50 hover:bg-transparent'
+                )}
               >
-                <Send className="w-4 h-4" />
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground text-center mt-2 opacity-70">
+            <p className="text-[11px] text-muted-foreground/50 text-center mt-2 hidden sm:block">
               Enter로 전송 · Shift+Enter로 줄바꿈
             </p>
           </div>
         </div>
       </div>
-
-      {/* 공고 상세 모달 */}
-      <JobDetailModal
-        jobId={selectedJobId}
-        open={isJobModalOpen}
-        onOpenChange={setIsJobModalOpen}
-      />
     </div>
   );
 }

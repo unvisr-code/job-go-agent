@@ -75,7 +75,7 @@ export default async function JobDetailPage({
     <div className="container mx-auto px-4 py-6 max-w-4xl">
       {/* Back button */}
       <Link href="/">
-        <Button variant="ghost" size="sm" className="mb-4 gap-2">
+        <Button variant="ghost" className="mb-4 gap-2 min-h-[44px]">
           <ArrowLeft className="w-4 h-4" />
           목록으로
         </Button>

@@ -407,6 +407,127 @@ export function dbToJobPosting(db: DbJobPosting): JobPosting {
   };
 }
 
+// ============================================
+// Statistics & Predictions Types (예측/통계)
+// ============================================
+
+export interface MonthlyStats {
+  month: string; // 'YYYY-MM' format
+  count: number;
+  internCount: number;
+}
+
+export interface OrganizationPattern {
+  orgName: string;
+  totalJobs: number;
+  avgPerYear: number;
+  typicalMonths: number[]; // 1-12
+  lastPostedAt: string | null;
+  mostRecentTitle: string | null;
+}
+
+export interface JobPrediction {
+  orgName: string;
+  predictedMonth: string; // 'YYYY-MM' format
+  confidence: number; // 0-1
+  basedOn: {
+    historicalCount: number;
+    lastYearSameMonth: boolean;
+    periodicPattern: string | null; // '3개월', '6개월', '12개월' 등
+  };
+}
+
+export interface StatsApiResponse<T> {
+  success: boolean;
+  data: T;
+  generatedAt: string;
+}
+
+export interface PredictionsApiResponse {
+  success: boolean;
+  predictions: JobPrediction[];
+  generatedAt: string;
+}
+
+export interface AIAnalysisResult {
+  summary: string;
+  insights: string[];
+  recommendations: string[];
+}
+
+// ============================================
+// Extended Statistics Types (예정공고 페이지 확장)
+// ============================================
+
+// 과거 공고 정보 (상세)
+export interface HistoricalJob {
+  id: string;
+  title: string;
+  applyStartAt: string;
+  applyEndAt: string | null;
+  dutyCategories: DutyCategory[];
+}
+
+// 기관 패턴 확장 (상세 정보 포함)
+export interface OrganizationPatternExtended extends OrganizationPattern {
+  historicalJobs: HistoricalJob[];
+}
+
+// 예측 근거
+export interface PredictionEvidence {
+  jobId: string;
+  title: string;
+  applyStartAt: string;
+  matchReason: 'same_month_last_year' | 'periodic_pattern' | 'high_frequency';
+}
+
+// 신뢰도 레벨
+export type ConfidenceLevel = 'high' | 'medium' | 'low';
+
+// 예측 확장 (근거 포함)
+export interface JobPredictionExtended extends JobPrediction {
+  confidenceLevel: ConfidenceLevel;
+  evidenceJobs: PredictionEvidence[];
+  predictedDutyCategories?: DutyCategory[];
+}
+
+// 기관 검색 파라미터
+export interface OrganizationSearchParams {
+  query?: string;
+  page?: number;
+  limit?: number;
+}
+
+// 기관 검색 응답
+export interface OrganizationSearchResponse {
+  patterns: OrganizationPatternExtended[];
+  total: number;
+  page: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+// AI 채팅용 기관 예측 정보
+export interface OrgPredictionInfo {
+  orgName: string;
+  prediction: {
+    predictedMonth: string;
+    confidence: number;
+    confidenceLevel: ConfidenceLevel;
+  } | null;
+  basedOn: {
+    historicalCount: number;
+    lastPostingMonth: string | null;
+    periodicPattern: string | null;
+    typicalMonths: number[];
+  };
+  recentJobs?: {
+    id: string;
+    title: string;
+    applyEndAt: string | null;
+  }[];
+}
+
 export function jobPostingToDb(job: Partial<JobPosting>): Partial<DbJobPosting> {
   const result: Partial<DbJobPosting> = {};
 

@@ -167,13 +167,13 @@ export function JobFilters({
         onToggle={() => toggleSection('regions')}
         activeCount={filters.regions?.length}
       >
-        <div className="flex flex-wrap gap-1.5 pt-2">
+        <div className="flex flex-wrap gap-2 pt-2">
           {REGIONS.map((region) => (
             <Badge
               key={region}
               variant={filters.regions?.includes(region) ? 'default' : 'outline'}
               className={cn(
-                'cursor-pointer transition-all hover:scale-105',
+                'cursor-pointer transition-all hover:scale-105 px-3 py-1.5 text-sm min-h-[36px]',
                 filters.regions?.includes(region)
                   ? 'bg-primary hover:bg-primary/90'
                   : 'hover:bg-muted'
@@ -196,13 +196,13 @@ export function JobFilters({
         onToggle={() => toggleSection('dutyCategories')}
         activeCount={filters.dutyCategories?.length}
       >
-        <div className="flex flex-wrap gap-1.5 pt-2">
+        <div className="flex flex-wrap gap-2 pt-2">
           {DUTY_CATEGORIES.map(({ value, label }) => (
             <Badge
               key={value}
               variant={filters.dutyCategories?.includes(value) ? 'default' : 'outline'}
               className={cn(
-                'cursor-pointer transition-all hover:scale-105',
+                'cursor-pointer transition-all hover:scale-105 px-3 py-1.5 text-sm min-h-[36px]',
                 filters.dutyCategories?.includes(value)
                   ? 'bg-primary hover:bg-primary/90'
                   : 'hover:bg-muted'
@@ -238,7 +238,7 @@ function FilterSection({
     <div>
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between py-1 text-sm font-medium hover:text-primary transition-colors"
+        className="w-full flex items-center justify-between py-3 text-sm font-medium hover:text-primary transition-colors min-h-[44px]"
       >
         <div className="flex items-center gap-2">
           <span className="text-muted-foreground">{icon}</span>

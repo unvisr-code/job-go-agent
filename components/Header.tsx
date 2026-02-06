@@ -5,12 +5,13 @@ import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { MessageSquare, Bookmark } from 'lucide-react';
+import { MessageSquare, Bookmark, TrendingUp } from 'lucide-react';
 
 export function Header() {
   const pathname = usePathname();
 
   const navItems = [
+    { href: '/upcoming', label: '예정 공고', icon: TrendingUp },
     { href: '/saved', label: '스크랩', icon: Bookmark },
     { href: '/chat', label: 'AI 채팅', icon: MessageSquare },
   ];
@@ -40,7 +41,7 @@ export function Header() {
         </Link>
 
         {/* Navigation */}
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-1 sm:gap-2">
           {navItems.map(({ href, label, icon: Icon }) => {
             const isActive = pathname === href;
             return (
@@ -49,11 +50,11 @@ export function Header() {
                   variant={isActive ? 'secondary' : 'ghost'}
                   size="sm"
                   className={cn(
-                    'gap-2 font-medium transition-all',
+                    'gap-2 font-medium transition-all min-h-[44px] min-w-[44px] px-3',
                     isActive && 'bg-secondary shadow-sm'
                   )}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-5 h-5" />
                   <span className="hidden sm:inline">{label}</span>
                 </Button>
               </Link>

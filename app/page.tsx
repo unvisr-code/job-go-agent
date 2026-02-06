@@ -58,24 +58,38 @@ function HomeContent() {
     limit: 12,
     // 기본값: 서울, 경기
     regions: urlRegions.length > 0 ? urlRegions : ['서울', '경기'],
-    // 기본값: INTERN
-    employmentType: (urlEmploymentTypes && urlEmploymentTypes.length > 0) ? urlEmploymentTypes : ['INTERN'],
+    // employmentType 필터는 사용하지 않음 (isInternship으로 대체)
+    employmentType: (urlEmploymentTypes && urlEmploymentTypes.length > 0) ? urlEmploymentTypes : undefined,
     dutyCategories: searchParams.getAll('dutyCategories').filter(Boolean) as JobSearchParams['dutyCategories'],
-    // 기본값: true (인턴십 공고만)
+    // 기본값: true (인턴 관련 공고 - 정규직 전환 포함)
     isInternship: true,
   };
 
   const [filters, setFilters] = useState<JobSearchParams>(initialFilters);
 
-  // Sync filters to URL
+  // Sync filters to URL - 기본값은 URL에 표시하지 않음
   useEffect(() => {
     const params = new URLSearchParams();
+
+    // 검색어 (있을 때만)
     if (filters.query) params.set('query', filters.query);
+
+    // 정렬 (기본값 deadline이 아닐 때만)
     if (filters.sortBy && filters.sortBy !== 'deadline') params.set('sortBy', filters.sortBy);
+
+    // 페이지 (2페이지 이상일 때만)
     if (filters.page && filters.page > 1) params.set('page', String(filters.page));
-    if (filters.isInternship) params.set('isInternship', 'true');
-    filters.regions?.forEach((r) => params.append('regions', r));
-    filters.employmentType?.forEach((t) => params.append('employmentType', t));
+
+    // 지역 - 기본값(서울, 경기)이 아닐 때만 표시 (순서 무관)
+    const defaultRegions = ['서울', '경기'];
+    const isDefaultRegions =
+      filters.regions?.length === defaultRegions.length &&
+      defaultRegions.every((r) => filters.regions?.includes(r));
+    if (!isDefaultRegions && filters.regions?.length) {
+      filters.regions.forEach((r) => params.append('regions', r));
+    }
+
+    // 직무분류 (있을 때만)
     filters.dutyCategories?.forEach((c) => params.append('dutyCategories', c));
 
     const newUrl = params.toString() ? `?${params.toString()}` : '/';
@@ -115,9 +129,8 @@ function HomeContent() {
         <div className="lg:hidden flex items-center justify-between mb-2">
           <Button
             variant="outline"
-            size="sm"
             onClick={() => setShowMobileFilter(true)}
-            className="gap-2"
+            className="gap-2 min-h-[44px]"
           >
             <Filter className="w-4 h-4" />
             필터
@@ -150,13 +163,14 @@ function HomeContent() {
               className="absolute inset-0 bg-black/50"
               onClick={() => setShowMobileFilter(false)}
             />
-            <div className="absolute inset-y-0 left-0 w-80 max-w-[85vw] bg-background p-6 overflow-y-auto animate-in slide-in-from-left">
+            <div className="absolute inset-y-0 left-0 w-80 max-w-[85vw] bg-background p-6 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] overflow-y-auto animate-in slide-in-from-left overscroll-contain">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-semibold text-lg">필터</h2>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setShowMobileFilter(false)}
+                  className="min-h-[44px] min-w-[44px]"
                 >
                   <X className="w-5 h-5" />
                 </Button>
@@ -278,8 +292,9 @@ function HomeContent() {
                     size="icon"
                     onClick={() => handlePageChange((filters.page || 1) - 1)}
                     disabled={!filters.page || filters.page <= 1}
+                    className="min-h-[44px] min-w-[44px]"
                   >
-                    <ChevronLeft className="w-4 h-4" />
+                    <ChevronLeft className="w-5 h-5" />
                   </Button>
 
                   <div className="flex items-center gap-1">
@@ -302,9 +317,8 @@ function HomeContent() {
                         <Button
                           key={displayPage}
                           variant={currentPage === displayPage ? 'default' : 'ghost'}
-                          size="sm"
                           onClick={() => handlePageChange(displayPage)}
-                          className="w-9 h-9"
+                          className="w-10 h-10 min-h-[44px] min-w-[44px] text-sm"
                         >
                           {displayPage}
                         </Button>
@@ -317,8 +331,9 @@ function HomeContent() {
                     size="icon"
                     onClick={() => handlePageChange((filters.page || 1) + 1)}
                     disabled={!data.hasMore}
+                    className="min-h-[44px] min-w-[44px]"
                   >
-                    <ChevronRight className="w-4 h-4" />
+                    <ChevronRight className="w-5 h-5" />
                   </Button>
                 </div>
               )}

@@ -52,7 +52,7 @@ export function JobCard({
     : null;
 
   const isExpired = job.applyEndAt ? isPast(new Date(job.applyEndAt)) : false;
-  const isUrgent = daysUntilDeadline !== null && daysUntilDeadline <= 7 && !isExpired;
+  const isUrgent = daysUntilDeadline !== null && daysUntilDeadline <= 3 && !isExpired;
 
   return (
     <Card
@@ -65,7 +65,7 @@ export function JobCard({
     >
       {/* Urgent indicator */}
       {isUrgent && (
-        <div className="absolute top-0 right-0 w-20 h-20 overflow-hidden">
+        <div className="absolute top-0 right-0 w-20 h-20 overflow-hidden pointer-events-none">
           <div className="absolute top-3 -right-6 w-28 transform rotate-45 bg-destructive text-destructive-foreground text-[10px] font-semibold text-center py-1 animate-pulse-soft">
             D-{daysUntilDeadline}
           </div>
@@ -92,18 +92,21 @@ export function JobCard({
 
           {onToggleBookmark && (
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
+                e.preventDefault();
                 onToggleBookmark(job.id);
               }}
               className={cn(
-                'shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer',
+                'shrink-0 w-11 h-11 rounded-full flex items-center justify-center transition-all z-10',
+                'cursor-pointer hover:scale-110 active:scale-95',
                 isBookmarked
                   ? 'bg-primary/10 text-primary'
-                  : 'bg-secondary opacity-0 group-hover:opacity-100 hover:bg-primary/10 hover:text-primary'
+                  : 'bg-secondary/80 text-muted-foreground md:opacity-0 md:group-hover:opacity-100 hover:bg-primary/10 hover:text-primary'
               )}
             >
-              <Bookmark className={cn('w-4 h-4', isBookmarked && 'fill-current')} />
+              <Bookmark className={cn('w-5 h-5', isBookmarked && 'fill-current')} />
             </button>
           )}
         </div>

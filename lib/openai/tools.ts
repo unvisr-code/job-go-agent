@@ -1,11 +1,31 @@
 import { searchJobs, getJobById, getRecommendedJobs } from '@/lib/supabase/queries';
+import { getOrgHistoryForPrediction } from '@/lib/supabase/stats-queries';
+import { predictNextPostingWithEvidence } from '@/lib/predictions/engine';
 import type { ChatCompletionTool } from 'openai/resources/chat/completions';
-import type { EmploymentType, DutyCategory } from '@/types';
+import type { EmploymentType, DutyCategory, OrgPredictionInfo } from '@/types';
 
 /**
  * OpenAI Function Calling Tools 정의
  */
 export const agentTools: ChatCompletionTool[] = [
+  {
+    type: 'function',
+    function: {
+      name: 'get_org_prediction',
+      description:
+        '특정 기관의 다음 채용공고 예측 정보를 조회합니다. "OO기관 언제 채용해?", "한전 공고 언제 올라와?" 같은 질문에 사용합니다.',
+      parameters: {
+        type: 'object',
+        properties: {
+          orgName: {
+            type: 'string',
+            description: '기관명 (예: 한국전력공사, 교통안전공단, KOTRA 등)',
+          },
+        },
+        required: ['orgName'],
+      },
+    },
+  },
   {
     type: 'function',
     function: {
@@ -139,14 +159,59 @@ export async function executeToolCall(
   args: Record<string, unknown>
 ): Promise<unknown> {
   switch (name) {
+    case 'get_org_prediction': {
+      const orgName = args.orgName as string;
+
+      // 기관 히스토리 데이터 조회
+      const orgHistory = await getOrgHistoryForPrediction(orgName);
+
+      if (!orgHistory) {
+        return {
+          found: false,
+          message: `"${orgName}"에 해당하는 기관의 채용 이력을 찾을 수 없습니다.`,
+        };
+      }
+
+      // 예측 생성
+      const prediction = predictNextPostingWithEvidence(
+        orgHistory.orgName,
+        orgHistory.postings
+      );
+
+      const result: OrgPredictionInfo = {
+        orgName: orgHistory.orgName,
+        prediction: prediction
+          ? {
+              predictedMonth: prediction.predictedMonth,
+              confidence: prediction.confidence,
+              confidenceLevel: prediction.confidenceLevel,
+            }
+          : null,
+        basedOn: {
+          historicalCount: orgHistory.postings.length,
+          lastPostingMonth: orgHistory.postings.length > 0
+            ? orgHistory.postings[orgHistory.postings.length - 1].month
+            : null,
+          periodicPattern: prediction?.periodicPattern || null,
+          typicalMonths: prediction?.typicalMonths || [],
+        },
+        recentJobs: orgHistory.recentJobs,
+      };
+
+      return {
+        found: true,
+        ...result,
+      };
+    }
+
     case 'search_jobs': {
-      // 인턴 scope: 기본적으로 인턴 공고만 검색
+      // 효주님 scope: 서울/경기 인턴 관련 공고 (정규직 전환 포함)
       const { jobs, total } = await searchJobs({
         query: args.query as string | undefined,
-        regions: args.regions as string[] | undefined,
+        regions: (args.regions as string[] | undefined) || ['서울', '경기'],
         dutyCategories: args.dutyCategories as DutyCategory[] | undefined,
-        employmentType: (args.employmentType as EmploymentType[] | undefined) || ['INTERN'],
-        isInternship: args.isInternship !== false, // 기본값 true
+        employmentType: args.employmentType as EmploymentType[] | undefined,
+        isInternship: args.isInternship !== false, // 기본값 true (인턴 관련 공고)
         limit: (args.limit as number) || 10,
         applyEndAfter: new Date().toISOString(), // 마감 안 된 공고만
       });
@@ -175,11 +240,11 @@ export async function executeToolCall(
     }
 
     case 'recommend_jobs': {
-      // 인턴 scope: 기본적으로 인턴만 추천
+      // 효주님 scope: 서울/경기 인턴 관련 공고 추천 (정규직 전환 포함)
       const jobs = await getRecommendedJobs({
-        regions: args.regions as string[] | undefined,
+        regions: (args.regions as string[] | undefined) || ['서울', '경기'],
         dutyCategories: args.dutyCategories as string[] | undefined,
-        employmentTypes: (args.employmentTypes as string[] | undefined) || ['INTERN'],
+        isInternship: true, // 인턴 관련 공고 (정규직 전환 포함)
         limit: (args.limit as number) || 5,
       });
 
