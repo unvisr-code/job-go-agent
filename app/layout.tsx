@@ -10,8 +10,8 @@ export const metadata: Metadata = {
   keywords: ['공공기관', '채용', '인턴', '취업', 'AI', '채용공고'],
 
   icons: {
-    icon: '/logo.png',
-    apple: '/logo.png',
+    icon: '/favicon.png',
+    apple: '/favicon.png',
   },
 
   openGraph: {
@@ -49,15 +49,9 @@ export default function RootLayout({
       <body className="min-h-screen">
         <Providers>
           <PasswordGate>
-            <div className="relative min-h-screen">
-              {/* Background mesh gradient */}
-              <div className="fixed inset-0 mesh-gradient pointer-events-none" />
-
-              {/* Content */}
-              <div className="relative z-10">
-                <Header />
-                <main>{children}</main>
-              </div>
+            <div className="min-h-screen">
+              <Header />
+              <main>{children}</main>
             </div>
           </PasswordGate>
         </Providers>
