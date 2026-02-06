@@ -7,37 +7,21 @@ import { upsertJobs } from '@/lib/supabase/queries';
  * ETL Cron Job
  * 공공데이터포털에서 채용공고를 가져와 Supabase에 저장
  *
- * Vercel Cron: 30분마다 실행
- * 수동 실행: POST /api/cron/sync (CRON_SECRET 필요)
+ * Vercel Cron: 매일 오전 6시(KST) 실행
  */
 
 export const maxDuration = 60; // 60초 타임아웃
 
 export async function GET(request: NextRequest) {
-  return handleSync(request);
-}
+  // Vercel Cron 요청인지 확인
+  const isVercelCron = request.headers.get('x-vercel-cron') === '1';
 
-export async function POST(request: NextRequest) {
-  return handleSync(request);
-}
-
-async function handleSync(request: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-
-  // CRON_SECRET must be configured in production
-  if (!cronSecret) {
-    console.error('[ETL] CRON_SECRET is not configured');
-    return NextResponse.json(
-      { error: 'Server configuration error' },
-      { status: 500 }
-    );
-  }
-
-  // Authentication via Authorization header only (not query params to avoid URL logging)
+  // 수동 실행 시 Bearer 토큰 확인
+  const cronSecret = process.env.CRON_SECRET?.trim();
   const authHeader = request.headers.get('authorization');
-  const isAuthorized = authHeader === `Bearer ${cronSecret}`;
+  const isManualAuth = cronSecret && authHeader === `Bearer ${cronSecret}`;
 
-  if (!isAuthorized) {
+  if (!isVercelCron && !isManualAuth) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }
