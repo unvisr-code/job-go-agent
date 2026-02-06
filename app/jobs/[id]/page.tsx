@@ -15,12 +15,19 @@ import {
   FileText,
   GraduationCap,
   AlertCircle,
+  Star,
 } from 'lucide-react';
 import Link from 'next/link';
 import { format, differenceInDays, isPast } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { JobDetailActions } from './JobDetailActions';
 import { JobAnalysis } from './JobAnalysis';
+import {
+  parseRequirements,
+  formatDutiesText,
+  parseSelectionSteps,
+  formatLongText,
+} from '@/lib/utils/text-parser';
 
 const employmentTypeLabels: Record<string, string> = {
   INTERN: '인턴',
@@ -73,6 +80,24 @@ export default async function JobDetailPage({
 
   const isExpired = job.applyEndAt ? isPast(new Date(job.applyEndAt)) : false;
   const isUrgent = daysUntilDeadline !== null && daysUntilDeadline <= 7 && !isExpired;
+
+  // 데이터 파싱
+  const parsedDuties = job.dutiesText ? formatDutiesText(job.dutiesText) : [];
+
+  // requirements가 하나의 긴 문자열인 경우 파싱
+  const parsedRequirements = job.requirements.length === 1 && job.requirements[0].length > 100
+    ? parseRequirements(job.requirements[0])
+    : job.requirements;
+
+  // selectionSteps가 없거나 description만 있는 경우 파싱
+  const parsedSelectionSteps = job.selectionSteps && job.selectionSteps.length > 0
+    ? job.selectionSteps[0].description
+      ? parseSelectionSteps(job.selectionSteps[0].description) || job.selectionSteps
+      : job.selectionSteps
+    : [];
+
+  // 전형절차 원본 설명
+  const selectionDescription = job.selectionSteps?.[0]?.description;
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-4xl">
@@ -202,24 +227,32 @@ export default async function JobDetailPage({
         {/* 상세 정보 섹션들 */}
         <div className="space-y-4">
           {/* 직무 내용 */}
-          {job.dutiesText && (
+          {parsedDuties.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Briefcase className="w-5 h-5 text-primary" />
-                  직무 내용
+                  직무 분야
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="whitespace-pre-wrap text-muted-foreground leading-relaxed">
-                  {job.dutiesText}
-                </p>
+                <div className="flex flex-wrap gap-2">
+                  {parsedDuties.map((duty, i) => (
+                    <Badge
+                      key={i}
+                      variant="secondary"
+                      className="text-sm py-1.5 px-3"
+                    >
+                      {duty}
+                    </Badge>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           )}
 
           {/* 지원 자격 */}
-          {job.requirements.length > 0 && (
+          {parsedRequirements.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -228,11 +261,13 @@ export default async function JobDetailPage({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2">
-                  {job.requirements.map((req, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary mt-2 shrink-0" />
-                      <span className="text-muted-foreground">{req}</span>
+                <ul className="space-y-3">
+                  {parsedRequirements.map((req, i) => (
+                    <li key={i} className="flex items-start gap-3">
+                      <span className="w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-medium shrink-0 mt-0.5">
+                        {i + 1}
+                      </span>
+                      <span className="text-muted-foreground leading-relaxed">{req}</span>
                     </li>
                   ))}
                 </ul>
@@ -241,7 +276,7 @@ export default async function JobDetailPage({
           )}
 
           {/* 전형 절차 */}
-          {job.selectionSteps && job.selectionSteps.length > 0 && (
+          {parsedSelectionSteps.length > 0 && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -249,33 +284,56 @@ export default async function JobDetailPage({
                   전형 절차
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                {/* 단계별 표시 */}
                 <div className="flex flex-wrap items-center gap-2">
-                  {job.selectionSteps.map((step, i) => (
+                  {parsedSelectionSteps.map((step, i) => (
                     <div key={i} className="flex items-center">
-                      <div className="flex items-center gap-2 px-4 py-2 bg-primary/5 rounded-full border border-primary/10">
-                        <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
+                      <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-primary/5 to-primary/10 rounded-xl border border-primary/10">
+                        <span className="w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-bold shadow-sm">
                           {step.order}
                         </span>
-                        <span className="font-medium text-sm">{step.name}</span>
+                        <span className="font-medium">{step.name}</span>
                       </div>
-                      {i < job.selectionSteps!.length - 1 && (
-                        <div className="mx-2 text-muted-foreground">→</div>
+                      {i < parsedSelectionSteps.length - 1 && (
+                        <div className="mx-2 text-primary/50 font-bold">→</div>
                       )}
                     </div>
                   ))}
                 </div>
-                {job.selectionSteps[0]?.description && (
-                  <p className="mt-4 text-sm text-muted-foreground">
-                    {job.selectionSteps[0].description}
-                  </p>
+
+                {/* 상세 설명 */}
+                {selectionDescription && (
+                  <div className="mt-4 p-4 bg-muted/30 rounded-lg">
+                    <p className="text-sm font-medium text-foreground mb-2">상세 안내</p>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                      {formatLongText(selectionDescription)}
+                    </p>
+                  </div>
                 )}
               </CardContent>
             </Card>
           )}
 
+          {/* 우대사항 (있는 경우) */}
+          {job.applyMethod && job.applyMethod.includes('우대') && (
+            <Card className="border-amber-200/50 bg-amber-50/30 dark:bg-amber-950/10">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Star className="w-5 h-5 text-amber-500" />
+                  우대 사항
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground leading-relaxed">
+                  {job.applyMethod}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* 지원 방법 */}
-          {job.applyMethod && (
+          {job.applyMethod && !job.applyMethod.includes('우대') && (
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
@@ -284,7 +342,9 @@ export default async function JobDetailPage({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">{job.applyMethod}</p>
+                <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                  {formatLongText(job.applyMethod)}
+                </p>
               </CardContent>
             </Card>
           )}
