@@ -95,12 +95,37 @@ export interface JobCompareResponse {
 
 export type ChatRole = 'user' | 'assistant' | 'system';
 
+export interface ChatSession {
+  id: string;
+  title: string;
+  preview: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DbChatSession {
+  id: string;
+  title: string;
+  preview: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ChatMessage {
   id: string;
+  sessionId?: string;
   role: ChatRole;
   content: string;
   createdAt: string;
   toolCalls?: ToolCall[];
+}
+
+export interface DbChatMessage {
+  id: string;
+  session_id: string;
+  role: string;
+  content: string;
+  created_at: string;
 }
 
 export interface ToolCall {

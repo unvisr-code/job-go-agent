@@ -31,6 +31,7 @@ export const UUIDSchema = z.string().regex(
 // POST /api/chat
 export const ChatRequestSchema = z.object({
   message: z.string().min(1, 'Message is required').max(2000, 'Message too long'),
+  sessionId: UUIDSchema.optional(),
   history: z
     .array(
       z.object({

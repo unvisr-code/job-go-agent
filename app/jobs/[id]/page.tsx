@@ -20,6 +20,7 @@ import Link from 'next/link';
 import { format, differenceInDays, isPast } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { JobDetailActions } from './JobDetailActions';
+import { JobAnalysis } from './JobAnalysis';
 
 const employmentTypeLabels: Record<string, string> = {
   INTERN: '인턴',
@@ -194,6 +195,9 @@ export default async function JobDetailPage({
             />
           </CardContent>
         </Card>
+
+        {/* AI 종합 평가 */}
+        <JobAnalysis jobId={job.id} />
 
         {/* 상세 정보 섹션들 */}
         <div className="space-y-4">
