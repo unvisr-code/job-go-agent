@@ -116,10 +116,10 @@ function HomeContent() {
     <div className="container mx-auto px-4 py-6">
       {/* Hero section */}
       <div className="text-center mb-8">
-        <h1 className="text-3xl sm:text-4xl font-bold mb-3 tracking-tight">
-          효주님, 오늘의 <span className="text-primary">인턴 공고</span>
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 tracking-tight break-keep">
+          효주님, 오늘의 <span className="text-primary">인턴&nbsp;공고</span>
         </h1>
-        <p className="text-muted-foreground max-w-lg mx-auto">
+        <p className="text-muted-foreground max-w-lg mx-auto text-sm sm:text-base break-keep">
           공공기관 인턴 채용, 공채GO가 함께합니다
         </p>
       </div>

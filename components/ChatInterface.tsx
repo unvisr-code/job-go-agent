@@ -370,92 +370,108 @@ export function ChatInterface() {
   ];
 
   return (
-    <div className="flex h-full bg-background">
-      {/* Sidebar - 세션 목록 */}
-      <div
-        className={cn(
-          'absolute md:relative z-20 h-full bg-background border-r border-border/50 transition-all duration-200',
-          showSidebar ? 'w-64 translate-x-0' : 'w-0 -translate-x-full md:w-64 md:translate-x-0'
-        )}
-      >
-        <div className="flex flex-col h-full w-64 overflow-hidden">
-          {/* 새 채팅 버튼 */}
-          <div className="p-3 border-b border-border/50 shrink-0">
-            <Button
-              onClick={createNewSession}
-              className="w-full justify-start gap-2"
-              variant="outline"
-            >
-              <Plus className="w-4 h-4" />
-              새 채팅
-            </Button>
-          </div>
-
-          {/* 세션 목록 */}
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-2 space-y-1">
-              {isLoadingSessions ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                </div>
-              ) : sessions.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  대화 기록이 없습니다
-                </p>
-              ) : (
-                sessions.map((session) => (
-                  <div
-                    key={session.id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => loadSession(session.id)}
-                    onKeyDown={(e) => e.key === 'Enter' && loadSession(session.id)}
-                    className={cn(
-                      'w-full text-left px-3 py-2.5 rounded-lg text-sm transition-colors group flex items-center gap-2 cursor-pointer',
-                      currentSessionId === session.id
-                        ? 'bg-primary/10 text-primary'
-                        : 'hover:bg-muted text-foreground'
-                    )}
-                  >
-                    <MessageSquare className="w-4 h-4 shrink-0" />
-                    <span className="flex-1 truncate">
-                      {session.title || '새 대화'}
-                    </span>
-                    <button
-                      onClick={(e) => deleteSession(session.id, e)}
-                      className="md:opacity-0 md:group-hover:opacity-100 p-2 hover:bg-destructive/10 rounded-lg transition-opacity min-w-[36px] min-h-[36px] flex items-center justify-center"
-                    >
-                      <Trash2 className="w-4 h-4 text-destructive" />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Overlay for mobile */}
+    <div className="flex h-full bg-background relative">
+      {/* Mobile Sidebar Overlay */}
       {showSidebar && (
         <div
-          className="fixed inset-0 bg-black/20 z-10 md:hidden"
+          className="fixed inset-0 bg-black/50 z-40 md:hidden animate-in fade-in duration-200"
           onClick={() => setShowSidebar(false)}
         />
       )}
 
-      {/* Main chat area */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        {/* Mobile header */}
-        <div className="md:hidden flex items-center gap-2 p-2 border-b border-border/50 shrink-0 bg-background">
+      {/* Sidebar - 세션 목록 (Claude 모바일 스타일) */}
+      <aside
+        className={cn(
+          // 모바일: fixed full-height, 데스크톱: relative
+          'fixed md:relative inset-y-0 left-0 z-50 md:z-auto',
+          'w-72 md:w-64 bg-background border-r border-border/50',
+          'flex flex-col',
+          'transition-transform duration-300 ease-out',
+          // 모바일 슬라이드 애니메이션
+          showSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+        )}
+      >
+        {/* 사이드바 헤더 (모바일) */}
+        <div className="flex items-center justify-between p-3 border-b border-border/50 md:hidden">
+          <span className="font-semibold text-sm">대화 기록</span>
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setShowSidebar(!showSidebar)}
-            className="shrink-0"
+            onClick={() => setShowSidebar(false)}
+            className="min-h-[44px] min-w-[44px]"
           >
-            {showSidebar ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            <X className="w-5 h-5" />
           </Button>
-          <span className="text-sm font-medium truncate">
+        </div>
+
+        {/* 새 채팅 버튼 */}
+        <div className="p-3 border-b border-border/50 md:border-b-0 md:pt-3">
+          <Button
+            onClick={createNewSession}
+            className="w-full justify-start gap-2 min-h-[44px]"
+            variant="outline"
+          >
+            <Plus className="w-4 h-4" />
+            새 채팅
+          </Button>
+        </div>
+
+        {/* 세션 목록 */}
+        <div className="flex-1 overflow-y-auto overscroll-contain">
+          <div className="p-2 space-y-1">
+            {isLoadingSessions ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+              </div>
+            ) : sessions.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                대화 기록이 없습니다
+              </p>
+            ) : (
+              sessions.map((session) => (
+                <div
+                  key={session.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => loadSession(session.id)}
+                  onKeyDown={(e) => e.key === 'Enter' && loadSession(session.id)}
+                  className={cn(
+                    'w-full text-left px-3 py-3 rounded-xl text-sm transition-colors group flex items-center gap-3 cursor-pointer min-h-[48px]',
+                    currentSessionId === session.id
+                      ? 'bg-primary/10 text-primary'
+                      : 'hover:bg-muted text-foreground active:bg-muted'
+                  )}
+                >
+                  <MessageSquare className="w-4 h-4 shrink-0" />
+                  <span className="flex-1 truncate leading-tight">
+                    {session.title || '새 대화'}
+                  </span>
+                  <button
+                    onClick={(e) => deleteSession(session.id, e)}
+                    className="opacity-60 hover:opacity-100 p-2 hover:bg-destructive/10 rounded-lg transition-all min-w-[40px] min-h-[40px] flex items-center justify-center"
+                  >
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </aside>
+
+      {/* Main chat area */}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        {/* Mobile header (Claude 스타일) */}
+        <div className="md:hidden flex items-center gap-3 px-3 py-2 border-b border-border/50 shrink-0 bg-background min-h-[52px]">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowSidebar(true)}
+            className="shrink-0 min-h-[44px] min-w-[44px]"
+          >
+            <Menu className="w-5 h-5" />
+          </Button>
+          <span className="flex-1 text-sm font-medium truncate text-center pr-11">
             {sessions.find((s) => s.id === currentSessionId)?.title || 'AI 채팅'}
           </span>
         </div>
@@ -470,9 +486,9 @@ export function ChatInterface() {
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center mb-5 shadow-lg shadow-primary/20">
                 <Sparkles className="w-7 h-7 text-white" />
               </div>
-              <h2 className="text-xl sm:text-2xl font-bold mb-2">무엇을 도와드릴까요?</h2>
-              <p className="text-muted-foreground mb-6 max-w-sm text-sm">
-                채용공고 검색, 추천, 그리고 예정 공고 예측까지 도와드려요
+              <h2 className="text-xl sm:text-2xl font-bold mb-2 break-keep">무엇을 도와드릴까요?</h2>
+              <p className="text-muted-foreground mb-6 max-w-sm text-sm break-keep">
+                채용공고 검색, 추천, 그리고 예정&nbsp;공고 예측까지 도와드려요
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-md">

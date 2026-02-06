@@ -129,10 +129,10 @@ export default function UpcomingPage() {
     <div className="container mx-auto px-4 py-6">
       {/* Hero section */}
       <div className="text-center mb-8">
-        <h1 className="text-3xl sm:text-4xl font-bold mb-3 tracking-tight">
-          효주님, <span className="text-primary">예정 공고</span>를 예측해봤어요
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 tracking-tight break-keep">
+          효주님, <span className="text-primary">예정&nbsp;공고</span>를 예측해봤어요
         </h1>
-        <p className="text-muted-foreground max-w-lg mx-auto mb-4">
+        <p className="text-muted-foreground max-w-lg mx-auto mb-4 text-sm sm:text-base break-keep">
           2025.02 ~ 2026.02 채용 데이터를 분석해 다가올 공고를 미리 알려드려요
         </p>
         {/* 범위 표시 */}

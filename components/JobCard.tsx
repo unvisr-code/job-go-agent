@@ -83,7 +83,7 @@ export function JobCard({
               </span>
             </div>
             <h3
-              className="font-semibold text-base leading-snug line-clamp-2 hover:text-primary transition-colors cursor-pointer"
+              className="font-semibold text-base leading-snug line-clamp-2 hover:text-primary transition-colors cursor-pointer break-keep"
               onClick={() => onClick?.(job)}
             >
               {job.title}
