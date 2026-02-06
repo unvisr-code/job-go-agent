@@ -17,8 +17,8 @@ import {
   Menu,
   X,
 } from 'lucide-react';
-import Link from 'next/link';
 import type { ChatSession } from '@/types';
+import { JobDetailModal } from './JobDetailModal';
 
 interface Message {
   id: string;
@@ -29,8 +29,9 @@ interface Message {
 
 /**
  * 간단한 마크다운 렌더링
+ * onJobClick: /jobs/{id} 링크 클릭 시 호출되는 콜백
  */
-function renderMarkdown(text: string) {
+function renderMarkdown(text: string, onJobClick?: (jobId: string) => void) {
   const parts: React.ReactNode[] = [];
   let key = 0;
 
@@ -67,17 +68,20 @@ function renderMarkdown(text: string) {
         const linkMatch = matched.match(/\[([^\]]+)\]\(([^)]+)\)/);
         if (linkMatch) {
           const [, linkText, url] = linkMatch;
-          if (url.startsWith('/')) {
+          // /jobs/{id} 링크는 모달로 열기
+          const jobMatch = url.match(/^\/jobs\/([a-f0-9-]+)$/i);
+          if (jobMatch && onJobClick) {
+            const jobId = jobMatch[1];
             parts.push(
-              <Link
+              <button
                 key={`link-${key++}`}
-                href={url}
+                onClick={() => onJobClick(jobId)}
                 className="text-primary hover:underline font-medium"
               >
                 {linkText}
-              </Link>
+              </button>
             );
-          } else {
+          } else if (url.startsWith('http')) {
             parts.push(
               <a
                 key={`link-${key++}`}
@@ -88,6 +92,12 @@ function renderMarkdown(text: string) {
               >
                 {linkText}
               </a>
+            );
+          } else {
+            parts.push(
+              <span key={`link-${key++}`} className="text-primary font-medium">
+                {linkText}
+              </span>
             );
           }
         }
@@ -114,8 +124,16 @@ export function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [showSidebar, setShowSidebar] = useState(false);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // 공고 상세 모달 열기
+  const handleJobClick = useCallback((jobId: string) => {
+    setSelectedJobId(jobId);
+    setIsJobModalOpen(true);
+  }, []);
 
   // 세션 목록 로드
   const loadSessions = useCallback(async () => {
@@ -335,11 +353,14 @@ export function ChatInterface() {
                 </p>
               ) : (
                 sessions.map((session) => (
-                  <button
+                  <div
                     key={session.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => loadSession(session.id)}
+                    onKeyDown={(e) => e.key === 'Enter' && loadSession(session.id)}
                     className={cn(
-                      'w-full text-left px-3 py-2 rounded-lg text-sm transition-colors group flex items-center gap-2',
+                      'w-full text-left px-3 py-2 rounded-lg text-sm transition-colors group flex items-center gap-2 cursor-pointer',
                       currentSessionId === session.id
                         ? 'bg-primary/10 text-primary'
                         : 'hover:bg-muted text-foreground'
@@ -355,7 +376,7 @@ export function ChatInterface() {
                     >
                       <Trash2 className="w-3 h-3 text-destructive" />
                     </button>
-                  </button>
+                  </div>
                 ))
               )}
             </div>
@@ -437,7 +458,7 @@ export function ChatInterface() {
                   >
                     <div className="text-sm leading-relaxed">
                       {message.role === 'assistant'
-                        ? renderMarkdown(message.content)
+                        ? renderMarkdown(message.content, handleJobClick)
                         : message.content}
                     </div>
                   </div>
@@ -497,6 +518,13 @@ export function ChatInterface() {
           </div>
         </div>
       </div>
+
+      {/* 공고 상세 모달 */}
+      <JobDetailModal
+        jobId={selectedJobId}
+        open={isJobModalOpen}
+        onOpenChange={setIsJobModalOpen}
+      />
     </div>
   );
 }

@@ -4,13 +4,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { MessageSquare, Search, Bookmark } from 'lucide-react';
+import { MessageSquare, Bookmark } from 'lucide-react';
 
 export function Header() {
   const pathname = usePathname();
 
   const navItems = [
-    { href: '/', label: '검색', icon: Search },
     { href: '/saved', label: '스크랩', icon: Bookmark },
     { href: '/chat', label: 'AI 채팅', icon: MessageSquare },
   ];

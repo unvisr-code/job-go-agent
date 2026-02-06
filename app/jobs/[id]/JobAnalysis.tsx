@@ -12,9 +12,12 @@ import {
   Loader2,
   RefreshCw,
   Star,
+  Clock,
 } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { ko } from 'date-fns/locale';
 
-interface JobAnalysis {
+interface JobAnalysisData {
   summary: string;
   highlights: string[];
   concerns: string[];
@@ -27,16 +30,21 @@ interface JobAnalysisProps {
 }
 
 export function JobAnalysis({ jobId }: JobAnalysisProps) {
-  const [analysis, setAnalysis] = useState<JobAnalysis | null>(null);
+  const [analysis, setAnalysis] = useState<JobAnalysisData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isCached, setIsCached] = useState(false);
+  const [analyzedAt, setAnalyzedAt] = useState<string | null>(null);
 
-  const fetchAnalysis = async () => {
+  const fetchAnalysis = async (refresh = false) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`/api/jobs/${jobId}/analysis`);
+      const url = refresh
+        ? `/api/jobs/${jobId}/analysis?refresh=true`
+        : `/api/jobs/${jobId}/analysis`;
+      const response = await fetch(url);
       const data = await response.json();
 
       if (!response.ok) {
@@ -44,6 +52,8 @@ export function JobAnalysis({ jobId }: JobAnalysisProps) {
       }
 
       setAnalysis(data.analysis);
+      setIsCached(data.cached || false);
+      setAnalyzedAt(data.analyzedAt || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : '분석에 실패했습니다.');
     } finally {
@@ -51,11 +61,21 @@ export function JobAnalysis({ jobId }: JobAnalysisProps) {
     }
   };
 
-  // 자동으로 분석 로드
   useEffect(() => {
     fetchAnalysis();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- jobId 변경 시에만 재실행
   }, [jobId]);
+
+  const formatAnalyzedTime = (dateString: string) => {
+    try {
+      return formatDistanceToNow(new Date(dateString), {
+        addSuffix: true,
+        locale: ko,
+      });
+    } catch {
+      return '';
+    }
+  };
 
   if (isLoading) {
     return (
@@ -76,7 +96,7 @@ export function JobAnalysis({ jobId }: JobAnalysisProps) {
         <CardContent className="p-6">
           <div className="flex flex-col items-center gap-3 py-4">
             <p className="text-sm text-muted-foreground">{error}</p>
-            <Button variant="outline" size="sm" onClick={fetchAnalysis}>
+            <Button variant="outline" size="sm" onClick={() => fetchAnalysis()}>
               <RefreshCw className="w-4 h-4 mr-2" />
               다시 시도
             </Button>
@@ -98,19 +118,51 @@ export function JobAnalysis({ jobId }: JobAnalysisProps) {
             <Sparkles className="w-5 h-5 text-violet-600" />
             AI 종합 평가
           </div>
-          <div className="flex items-center gap-1">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Star
-                key={star}
-                className={`w-4 h-4 ${
-                  star <= analysis.matchScore
-                    ? 'text-yellow-500 fill-yellow-500'
-                    : 'text-gray-300'
-                }`}
-              />
-            ))}
+          <div className="flex items-center gap-3">
+            {/* 별점 */}
+            <div className="flex items-center gap-1">
+              {[1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  className={`w-4 h-4 ${
+                    star <= analysis.matchScore
+                      ? 'text-yellow-500 fill-yellow-500'
+                      : 'text-gray-300'
+                  }`}
+                />
+              ))}
+            </div>
           </div>
         </CardTitle>
+
+        {/* 분석 시점 표시 */}
+        {analyzedAt && (
+          <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Clock className="w-3.5 h-3.5" />
+              <span>
+                {isCached ? (
+                  <>
+                    {formatAnalyzedTime(analyzedAt)} 분석됨
+                  </>
+                ) : (
+                  '방금 분석됨'
+                )}
+              </span>
+            </div>
+            {isCached && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => fetchAnalysis(true)}
+              >
+                <RefreshCw className="w-3 h-3 mr-1" />
+                다시 분석
+              </Button>
+            )}
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {/* 요약 */}

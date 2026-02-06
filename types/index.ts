@@ -299,6 +299,48 @@ export interface DbAlertRule {
 }
 
 // ============================================
+// Job Analysis Types (AI 분석 결과)
+// ============================================
+
+export interface JobAnalysis {
+  id: string;
+  jobId: string;
+  summary: string;
+  highlights: string[];
+  concerns: string[];
+  tip: string | null;
+  matchScore: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DbJobAnalysis {
+  id: string;
+  job_id: string;
+  summary: string;
+  highlights: string[];
+  concerns: string[];
+  tip: string | null;
+  match_score: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export function dbToJobAnalysis(db: DbJobAnalysis): JobAnalysis {
+  return {
+    id: db.id,
+    jobId: db.job_id,
+    summary: db.summary,
+    highlights: db.highlights,
+    concerns: db.concerns,
+    tip: db.tip,
+    matchScore: db.match_score,
+    createdAt: db.created_at,
+    updatedAt: db.updated_at,
+  };
+}
+
+// ============================================
 // Database Types (Supabase snake_case)
 // ============================================
 

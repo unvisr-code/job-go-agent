@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getJobById } from '@/lib/supabase/queries';
+import { getCachedAnalysis, saveAnalysis } from '@/lib/supabase/analysis-queries';
 import { isOpenAIConfigured, openai, CHAT_MODEL } from '@/lib/openai/client';
 
 /**
  * GET /api/jobs/[id]/analysis
- * LLM을 사용한 채용공고 종합 분석
+ * LLM을 사용한 채용공고 종합 분석 (캐싱 지원)
+ *
+ * Query params:
+ * - refresh=true: 캐시 무시하고 재분석
  */
 export async function GET(
   request: NextRequest,
@@ -12,6 +16,25 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const refresh = request.nextUrl.searchParams.get('refresh') === 'true';
+
+    // 캐시 확인 (refresh가 아닌 경우)
+    if (!refresh) {
+      const cached = await getCachedAnalysis(id);
+      if (cached) {
+        return NextResponse.json({
+          analysis: {
+            summary: cached.summary,
+            highlights: cached.highlights,
+            concerns: cached.concerns,
+            tip: cached.tip,
+            matchScore: cached.matchScore,
+          },
+          cached: true,
+          analyzedAt: cached.createdAt,
+        });
+      }
+    }
 
     // OpenAI 설정 확인
     if (!isOpenAIConfigured()) {
@@ -78,7 +101,15 @@ export async function GET(
 
     const analysis = JSON.parse(content);
 
-    return NextResponse.json({ analysis });
+    // 분석 결과 캐싱
+    const saved = await saveAnalysis(id, analysis);
+    const analyzedAt = saved?.createdAt || new Date().toISOString();
+
+    return NextResponse.json({
+      analysis,
+      cached: false,
+      analyzedAt,
+    });
   } catch (error) {
     console.error('[API] Job analysis error:', error);
 

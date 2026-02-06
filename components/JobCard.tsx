@@ -9,7 +9,6 @@ import {
   Calendar,
   Building2,
   Users,
-  ArrowUpRight,
   Clock,
   Bookmark,
 } from 'lucide-react';
@@ -60,10 +59,9 @@ export function JobCard({
       className={cn(
         'group relative overflow-hidden transition-all duration-300',
         'hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1',
-        'cursor-pointer border-border/50',
+        'border-border/50',
         isExpired && 'opacity-60'
       )}
-      onClick={() => onClick?.(job)}
     >
       {/* Urgent indicator */}
       {isUrgent && (
@@ -84,32 +82,30 @@ export function JobCard({
                 {job.orgName}
               </span>
             </div>
-            <h3 className="font-semibold text-base leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+            <h3
+              className="font-semibold text-base leading-snug line-clamp-2 hover:text-primary transition-colors cursor-pointer"
+              onClick={() => onClick?.(job)}
+            >
               {job.title}
             </h3>
           </div>
 
-          <div className="flex items-center gap-1">
-            {onToggleBookmark && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleBookmark(job.id);
-                }}
-                className={cn(
-                  'shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all',
-                  isBookmarked
-                    ? 'bg-primary/10 text-primary'
-                    : 'bg-secondary opacity-0 group-hover:opacity-100 hover:bg-primary/10 hover:text-primary'
-                )}
-              >
-                <Bookmark className={cn('w-4 h-4', isBookmarked && 'fill-current')} />
-              </button>
-            )}
-            <div className="shrink-0 w-9 h-9 rounded-full bg-secondary flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
-              <ArrowUpRight className="w-4 h-4" />
-            </div>
-          </div>
+          {onToggleBookmark && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleBookmark(job.id);
+              }}
+              className={cn(
+                'shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-all cursor-pointer',
+                isBookmarked
+                  ? 'bg-primary/10 text-primary'
+                  : 'bg-secondary opacity-0 group-hover:opacity-100 hover:bg-primary/10 hover:text-primary'
+              )}
+            >
+              <Bookmark className={cn('w-4 h-4', isBookmarked && 'fill-current')} />
+            </button>
+          )}
         </div>
 
         {/* Badges */}
