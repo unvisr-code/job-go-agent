@@ -21,8 +21,9 @@ AI 기반 공공기관 인턴/채용 공고 검색, 예측, 대화형 탐색 서
 
 ### UX
 - **다크모드**: 라이트/다크 테마 지원
-- **모바일 최적화**: 반응형 디자인, 터치 타겟 44px 보장
-- **Claude 스타일 채팅**: 부드러운 스크롤, 타이핑 인디케이터
+- **모바일 최적화**: 반응형 디자인, 터치 타겟 44px 보장, Safe Area 대응
+- **Claude 스타일 채팅**: 슬라이드 사이드바, 부드러운 스크롤, 타이핑 인디케이터
+- **깔끔한 URL**: 기본 필터값은 URL에 표시하지 않음
 
 ## 기술 스택
 
@@ -178,10 +179,10 @@ curl "http://localhost:3000/api/jobs/UUID/analysis?refresh=true"
 ### 사용 예시
 
 ```
-"서울 지역 데이터 분석 인턴 찾아줘"
-"마감 임박한 개발 직무 추천해줘"
-"한국전력공사 언제 채용해?"
-"경기도 행정 인턴 공고 검색해줘"
+"이번 주 마감인 인턴 공고 알려줘"
+"서울에서 데이터 관련 인턴 있어?"
+"지금 지원 가능한 공고 추천해줘"
+"한국수자원공사 채용 일정 알려줘"
 ```
 
 ## 예측 엔진
@@ -218,18 +219,20 @@ curl "http://localhost:3000/api/jobs/UUID/analysis?refresh=true"
 2. 환경 변수 설정 (Settings → Environment Variables)
 3. 배포
 
-Cron Job은 `vercel.json`에 정의되어 있으며, 30분마다 자동 실행됩니다:
+Cron Job은 `vercel.json`에 정의되어 있으며, 매일 오전 9시(UTC)에 자동 실행됩니다:
 
 ```json
 {
   "crons": [
     {
       "path": "/api/cron/sync",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 }
 ```
+
+> **Note**: Vercel Hobby 플랜은 하루 1회 Cron만 지원합니다.
 
 ## 스크립트
 
